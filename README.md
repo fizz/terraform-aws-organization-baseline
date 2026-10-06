@@ -41,7 +41,7 @@ The four cost allocation tags `Project`, `Environment`, `ManagedBy` and `Module`
 
 **A region deny breaks Bedrock.** Bedrock inference profiles route a request to another region, and a plain `aws:RequestedRegion` deny blocks the hop. `bedrock:*` is in the exempt list. Add any other service that routes to a second region.
 
-**An encryption rule that requires the header breaks `aws s3 cp`.** S3 encrypts new objects by default, so clients rarely send the encryption header. A rule that denies a request without one denies nearly every upload. This module denies only a request that names something other than SSE-S3 or SSE-KMS, and any request over plain HTTP.
+**An encryption rule that requires the header breaks `aws s3 cp`.** S3 encrypts new objects by default, so callers rarely send the encryption header. A rule that denies a request without one denies nearly every upload. This module denies only a request that names something other than SSE-S3 or SSE-KMS, and any request over plain HTTP.
 
 **Your own pipeline is a principal too.** An SCP that denies `cloudtrail:UpdateTrail` also stops the Terraform role that manages the trail. `exempt_principals` applies to the access-key and audit-tampering policies. It cannot be empty, because an empty condition is an invalid policy. The default is the role AWS Organizations creates in each member account.
 

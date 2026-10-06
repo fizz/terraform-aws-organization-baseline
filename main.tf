@@ -46,7 +46,7 @@ locals {
       }
 
       # A rule that requires the encryption header denies every CLI upload that does
-      # not send one, because S3 encrypts by default and clients rarely ask. This one
+      # not send one, because S3 encrypts by default and callers rarely ask. This one
       # denies only a request that names something other than SSE-S3 or SSE-KMS, and
       # any request over plain HTTP.
       s3_protection = {
