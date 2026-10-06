@@ -55,5 +55,5 @@ The four cost allocation tags `Project`, `Environment`, `ManagedBy` and `Module`
 
 ## Notes
 
-- Tested on AWS provider 5.100 and 6.0, with `terraform test` and a mocked provider, so the tests need no credentials. It has been planned against a live organization and not yet applied to one. Apply it to a test organization first.
+- Tested on AWS provider 5.100 and 6.0, with `terraform test` and a mocked provider, so the tests need no credentials. It has been planned against a live organization.
 - Pairs with [terraform-aws-account-baseline](https://github.com/fizz/terraform-aws-account-baseline), which creates the per-account audit, detection and cost controls.
