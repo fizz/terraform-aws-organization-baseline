@@ -1,0 +1,62 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: terraform fmt
+        run: terraform fmt -check -recursive -diff
+
+      - name: ASCII in descriptions
+        run: scripts/check-ascii.sh
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: tflint
+        run: |
+          tflint --init
+          tflint --recursive --minimum-failure-severity=warning
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        provider: ["5.100.0", "6.0.0"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      # Pins the provider so the module is checked against both major versions it supports.
+      - name: pin the provider
+        run: sed -i 's/version = ">= 5.0"/version = "= ${{ matrix.provider }}"/' versions.tf
+
+      - name: terraform validate
+        run: |
+          terraform init -backend=false
+          terraform validate
+
+      - name: terraform test
+        run: terraform test
+
+      - name: validate the example
+        run: |
+          cd examples/complete
+          terraform init -backend=false
+          terraform validate
