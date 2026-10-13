@@ -74,7 +74,7 @@ variable "exempt_principals" {
 }
 
 variable "cost_allocation_tag_keys" {
-  description = "Tag keys to activate for cost allocation. A tag appears in Cost Explorer only after it is activated, and AWS does not backfill earlier cost."
+  description = "Tag keys to activate for cost allocation. A tag appears in Cost Explorer only after it is activated, and AWS does not backfill earlier cost. AWS can activate only a key that has already appeared on the bill, so in an organization that has never used a key, leave it out of this list."
   type        = list(string)
   default     = ["Project", "Environment", "ManagedBy", "Module"]
 }

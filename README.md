@@ -95,6 +95,8 @@ GovCloud usage is billed in the paired commercial account, and its rows carry th
 
 **Cost tags need the management account.** A tag shows in Cost Explorer only after it is activated there. AWS does not backfill cost from before the activation, so activate early.
 
+**A tag key activates only after it appears on the bill.** AWS refuses to activate a key that no resource in the organization has carried, and the apply fails. If no resource in the organization has carried a key in the default list, such as `Module`, pass a shorter `cost_allocation_tag_keys`. To see which keys AWS knows, run `aws ce list-cost-allocation-tags` in the management account.
+
 **An export created before an option existed never gains it.** The IAM principal column needs a new CUR 2.0 export. An old export with the same table does not get the column.
 
 **The provider reports an inconsistent result without `BILLING_VIEW_ARN`.** AWS adds it to a CUR 2.0 export on create. The module puts it in the configuration.
