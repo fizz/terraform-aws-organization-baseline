@@ -60,3 +60,17 @@ jobs:
           cd examples/complete
           terraform init -backend=false
           terraform validate
+
+  queries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install the DuckDB CLI
+        run: |
+          curl -fsSL -o duckdb.zip https://github.com/duckdb/duckdb/releases/download/v1.5.5/duckdb_cli-linux-amd64.zip
+          unzip -q duckdb.zip -d "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
+
+      - name: test the CUR 2.0 views
+        run: modules/data-exports/queries/tests/cur2_test.sh
