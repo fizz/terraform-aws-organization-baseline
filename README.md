@@ -37,6 +37,31 @@ Apply it in the organization's management account. The first apply creates the p
 
 The four cost allocation tags `Project`, `Environment`, `ManagedBy` and `Module` are activated too. Change the list with `cost_allocation_tag_keys`.
 
+## Cost data exports
+
+Set `enable_data_exports = true` to create a bucket and three daily Parquet exports. AWS Billing writes them from the management account, so they cover every member account.
+
+| Key | Export | Prefix |
+|---|---|---|
+| `focus` | FOCUS 1.2, hourly | `focus/v1.2` |
+| `recommendations` | Cost Optimization Hub recommendations | `recommendations` |
+| `cur2` | CUR 2.0, daily, with `line_item_iam_principal` | `cur2/iam-principal` |
+
+The CUR 2.0 export splits spend by the IAM principal that made each call. Bedrock attributes inference cost this way. A federated user appears as `assumed-role/<role>/<session name>`, so a role for each person splits Bedrock cost by person with no tags. FOCUS has no such column.
+
+The exports are also a submodule. An organization that already has its own service control policies can use the exports alone:
+
+```hcl
+module "data_exports" {
+  source  = "fizz/organization-baseline/aws//modules/data-exports"
+  version = "~> 0.2"
+
+  name = "acme"
+}
+```
+
+To adopt exports that exist already, pass their names and descriptions in `exports`, and add a `moved` block for each resource. A change to the name, the description, the prefix or the granularity replaces an export, and the exports and the bucket have `prevent_destroy`.
+
 ## What is hard to get right
 
 **A region deny breaks Bedrock.** Bedrock inference profiles route a request to another region, and a plain `aws:RequestedRegion` deny blocks the hop. `bedrock:*` is in the exempt list. Add any other service that routes to a second region.
@@ -53,7 +78,15 @@ The four cost allocation tags `Project`, `Environment`, `ManagedBy` and `Module`
 
 **Cost tags need the management account.** A tag shows in Cost Explorer only after it is activated there. AWS does not backfill cost from before the activation, so activate early.
 
+**An export created before an option existed never gains it.** The IAM principal column needs a new CUR 2.0 export. An old export with the same table does not get the column.
+
+**The provider reports an inconsistent result without `BILLING_VIEW_ARN`.** AWS adds it to a CUR 2.0 export on create. The module puts it in the configuration.
+
+**Data Exports refuses `SELECT *`.** Each query names every column of its table. A column that AWS adds later appears only after it is added to `modules/data-exports/columns.tf`.
+
+**Cost Optimization Hub must be on, and two service-linked roles must exist.** They are `AWSServiceRoleForCostOptimizationHub` and `AWSServiceRoleForBCMDataExports`. The module does not create them, because creating them in the same apply as an export fails on a race (terraform-provider-aws#39855). The first export created in the console creates the second role.
+
 ## Notes
 
-- Tested on AWS provider 5.100 and 6.0, with `terraform test` and a mocked provider, so the tests need no credentials. It has been planned against a live organization.
+- Needs AWS provider 6.0 or later. Tested on 6.0 and 6.68, with `terraform test` and a mocked provider, so the tests need no credentials. It has been planned against a live organization.
 - Pairs with [terraform-aws-account-baseline](https://github.com/fizz/terraform-aws-account-baseline), which creates the per-account audit, detection and cost controls.

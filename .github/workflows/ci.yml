@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        provider: ["5.100.0", "6.0.0"]
+        provider: ["6.0.0", "6.68.0"]
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +45,7 @@ jobs:
 
       # Pins the provider so the module is checked against both major versions it supports.
       - name: pin the provider
-        run: sed -i 's/version = ">= 5.0"/version = "= ${{ matrix.provider }}"/' versions.tf
+        run: sed -i 's/version = ">= 6.0"/version = "= ${{ matrix.provider }}"/' versions.tf
 
       - name: terraform validate
         run: |
