@@ -62,6 +62,23 @@ module "data_exports" {
 
 To adopt exports that exist already, pass their names and descriptions in `exports`, and add a `moved` block for each resource. A change to the name, the description, the prefix or the granularity replaces an export, and the exports and the bucket have `prevent_destroy`.
 
+### Reading the exports
+
+`modules/data-exports/queries/cur2.sql` defines DuckDB views over the CUR 2.0 export:
+
+- `cur2` keeps only the latest snapshot of each billing period. Each refresh of a `CREATE_NEW_REPORT` export writes a complete copy, so a query over every file counts each cost once per snapshot.
+- `cur2` adds `service` (the product name, not the code), `model`, `seller`, `partition`, `role`, `session` and `cost`. A Marketplace model such as Claude has an opaque product code, and `service` and `model` give its name. An SDK default session name such as `botocore-session-<time>` becomes null.
+- `model_cost_by_caller` is model spend by day, account, Region, role and session.
+
+```sql
+SET VARIABLE cur2_path = 's3://<bucket>/cur2/iam-principal/*/data/*/*/*.parquet';
+.read modules/data-exports/queries/cur2.sql
+SELECT model, caller, session, round(sum(cost), 2) AS usd
+FROM model_cost_by_caller GROUP BY ALL ORDER BY usd DESC;
+```
+
+GovCloud usage is billed in the paired commercial account, and its rows carry the GovCloud principal (`arn:aws-us-gov:...`), so `partition` is `aws-us-gov`.
+
 ## What is hard to get right
 
 **A region deny breaks Bedrock.** Bedrock inference profiles route a request to another region, and a plain `aws:RequestedRegion` deny blocks the hop. `bedrock:*` is in the exempt list. Add any other service that routes to a second region.
