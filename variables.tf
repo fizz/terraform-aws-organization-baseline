@@ -78,3 +78,15 @@ variable "cost_allocation_tag_keys" {
   type        = list(string)
   default     = ["Project", "Environment", "ManagedBy", "Module"]
 }
+
+variable "enable_data_exports" {
+  description = "Create the cost data exports (FOCUS 1.2, Cost Optimization Hub recommendations, CUR 2.0 with the IAM principal) and their bucket. See modules/data-exports."
+  type        = bool
+  default     = false
+}
+
+variable "data_exports_bucket_name" {
+  description = "Bucket for the cost data exports. Null creates <name>-finops-<account ID>."
+  type        = string
+  default     = null
+}

@@ -1,5 +1,6 @@
-# Organization baseline: service control policies and cost-tag activation. Applied
-# once, from the organization's management account. See README.md.
+# Organization baseline: service control policies, cost-tag activation and, as an
+# option, cost data exports. Applied once, from the organization's management account.
+# See README.md.
 #
 # SCPs never apply to the management account, and never to AWS service principals.
 # They apply to every IAM principal in the attached accounts, root included.
@@ -200,4 +201,14 @@ resource "aws_ce_cost_allocation_tag" "active" {
 
   tag_key = each.value
   status  = "Active"
+}
+
+# Cost data exports. Off by default. The submodule also works alone, for an
+# organization that already has its own service control policies.
+module "data_exports" {
+  source = "./modules/data-exports"
+  count  = var.enable_data_exports ? 1 : 0
+
+  name        = var.name
+  bucket_name = var.data_exports_bucket_name
 }

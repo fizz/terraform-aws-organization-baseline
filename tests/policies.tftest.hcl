@@ -6,6 +6,18 @@ mock_provider "aws" {
       partition = "aws"
     }
   }
+
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "111122223333"
+    }
+  }
+
+  mock_data "aws_iam_policy_document" {
+    defaults = {
+      json = "{}"
+    }
+  }
 }
 
 run "defaults_create_policies_and_attach_nothing" {
@@ -107,4 +119,36 @@ run "oversized_policy_fails_at_plan" {
   }
 
   expect_failures = [terraform_data.size_limit]
+}
+
+run "data_exports_are_off_by_default" {
+  command = plan
+
+  assert {
+    condition     = length(module.data_exports) == 0
+    error_message = "The exports are created only when enable_data_exports is true."
+  }
+}
+
+run "data_exports_create_three_exports" {
+  command = plan
+
+  variables {
+    enable_data_exports = true
+  }
+
+  assert {
+    condition     = length(module.data_exports[0].s3_uris) == 3
+    error_message = "FOCUS, recommendations and CUR 2.0 by default."
+  }
+
+  assert {
+    condition     = module.data_exports[0].bucket_name == "baseline-finops-111122223333"
+    error_message = "The default bucket is <name>-finops-<account ID>."
+  }
+
+  assert {
+    condition     = module.data_exports[0].s3_uris["cur2"] == "s3://baseline-finops-111122223333/cur2/iam-principal/"
+    error_message = "The CUR 2.0 export writes under cur2/iam-principal."
+  }
 }
