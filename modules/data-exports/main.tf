@@ -99,13 +99,72 @@ resource "aws_s3_bucket_versioning" "this" {
   }
 }
 
+# The bucket encrypts with a key this module owns, so the account decides who can read
+# the cost history. The account root statement lets IAM policies grant the key, so a
+# reader needs kms:Decrypt on it as well as s3:GetObject. The export services write
+# through S3, which asks KMS for a data key on their behalf.
+data "aws_iam_policy_document" "key" {
+  statement {
+    sid    = "AccountAdministersTheKey"
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:${local.partition}:iam::${local.account_id}:root"]
+    }
+
+    actions   = ["kms:*"]
+    resources = ["*"]
+  }
+
+  statement {
+    sid    = "DataExportsEncryptsDeliveries"
+    effect = "Allow"
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "billingreports.amazonaws.com",
+        "bcm-data-exports.amazonaws.com",
+      ]
+    }
+
+    actions = [
+      "kms:GenerateDataKey",
+      "kms:Decrypt",
+    ]
+    resources = ["*"]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account_id]
+    }
+  }
+}
+
+resource "aws_kms_key" "this" {
+  description             = "Encrypts the ${var.name} cost data exports in ${local.bucket_name}"
+  enable_key_rotation     = true
+  deletion_window_in_days = 30
+  policy                  = data.aws_iam_policy_document.key.json
+}
+
+resource "aws_kms_alias" "this" {
+  name          = "alias/${var.name}-finops"
+  target_key_id = aws_kms_key.this.key_id
+}
+
+# The bucket key cuts the KMS requests from one per object to one per bucket key period.
 resource "aws_s3_bucket_server_side_encryption_configuration" "this" {
   bucket = aws_s3_bucket.this.id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = aws_kms_key.this.arn
     }
+    bucket_key_enabled = true
   }
 }
 
