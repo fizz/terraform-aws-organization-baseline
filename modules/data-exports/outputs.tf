@@ -13,6 +13,11 @@ output "kms_key_arn" {
   value       = aws_kms_key.this.arn
 }
 
+output "reencrypt_runbook" {
+  description = "Name of the runbook that re-encrypts delivered files. Null when reencrypt_deliveries is false."
+  value       = var.reencrypt_deliveries ? aws_ssm_document.reencrypt[0].name : null
+}
+
 output "export_arns" {
   description = "Export ARNs by key."
   value       = { for k, e in aws_bcmdataexports_export.this : k => e.arn }

@@ -209,6 +209,7 @@ module "data_exports" {
   source = "./modules/data-exports"
   count  = var.enable_data_exports ? 1 : 0
 
-  name        = var.name
-  bucket_name = var.data_exports_bucket_name
+  name                 = var.name
+  bucket_name          = var.data_exports_bucket_name
+  reencrypt_deliveries = var.data_exports_reencrypt_deliveries
 }

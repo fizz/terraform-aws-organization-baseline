@@ -101,6 +101,112 @@ run "adopting_caller_keeps_its_names" {
   }
 }
 
+run "reencryption_is_off_by_default" {
+  command = plan
+
+  assert {
+    condition = (
+      length(aws_s3_bucket_notification.this) == 0 &&
+      length(aws_cloudwatch_event_rule.reencrypt) == 0 &&
+      length(aws_ssm_document.reencrypt) == 0 &&
+      length(aws_iam_role.reencrypt) == 0 &&
+      length(aws_iam_role.events) == 0
+    )
+    error_message = "Nothing for re-encryption is created unless reencrypt_deliveries is true."
+  }
+}
+
+run "reencryption_matches_each_export_prefix" {
+  # The target ARN and the runbook content use values AWS computes, which a plan leaves
+  # unknown. The provider is mocked, so this apply makes no AWS calls. Its own state keeps
+  # the later runs from planning a destroy of the exports.
+  command   = apply
+  state_key = "reencrypt"
+
+  variables {
+    reencrypt_deliveries = true
+  }
+
+  override_resource {
+    target = aws_s3_bucket.this
+    values = {
+      region = "us-east-1"
+    }
+  }
+
+  override_resource {
+    target = aws_kms_key.this
+    values = {
+      arn = "arn:aws:kms:us-east-1:111122223333:key/00000000-0000-0000-0000-000000000000"
+    }
+  }
+
+  override_resource {
+    target = aws_iam_role.reencrypt
+    values = {
+      arn = "arn:aws:iam::111122223333:role/baseline-finops-reencrypt"
+    }
+  }
+
+  override_resource {
+    target = aws_iam_role.events
+    values = {
+      arn = "arn:aws:iam::111122223333:role/baseline-finops-reencrypt-events"
+    }
+  }
+
+  assert {
+    condition     = aws_s3_bucket_notification.this[0].eventbridge
+    error_message = "The bucket sends its events to EventBridge."
+  }
+
+  assert {
+    condition = (
+      toset([for k in jsondecode(aws_cloudwatch_event_rule.reencrypt[0].event_pattern).detail.object.key : k.prefix]) ==
+      toset(["focus/v1.2/", "recommendations/", "cur2/iam-principal/"])
+    )
+    error_message = "The rule matches the prefix of each export, with a trailing slash."
+  }
+
+  assert {
+    condition     = jsondecode(aws_cloudwatch_event_rule.reencrypt[0].event_pattern)["detail-type"] == ["Object Created"]
+    error_message = "The rule matches new objects only."
+  }
+
+  assert {
+    condition     = endswith(aws_cloudwatch_event_target.reencrypt[0].arn, "automation-definition/baseline-finops-reencrypt:$DEFAULT")
+    error_message = "The target is the runbook's default version."
+  }
+
+  assert {
+    condition     = yamldecode(aws_ssm_document.reencrypt[0].content).mainSteps[0].inputs.Api == "UpdateObjectEncryption"
+    error_message = "The runbook calls UpdateObjectEncryption."
+  }
+
+  assert {
+    condition     = yamldecode(aws_ssm_document.reencrypt[0].content).mainSteps[0].inputs.ObjectEncryption.SSEKMS.BucketKeyEnabled
+    error_message = "The runbook asks for an S3 Bucket Key on each object."
+  }
+}
+
+run "reencryption_follows_the_caller_prefixes" {
+  command = plan
+
+  variables {
+    reencrypt_deliveries = true
+    exports = {
+      focus = {
+        s3_prefix = "legacy/focus"
+      }
+    }
+  }
+
+  assert {
+    condition     = [for k in jsondecode(aws_cloudwatch_event_rule.reencrypt[0].event_pattern).detail.object.key : k.prefix] == ["legacy/focus/"]
+    error_message = "The rule matches only the exports that exist, with their given prefixes."
+  }
+}
+
 run "unknown_export_key_fails" {
   command = plan
 
