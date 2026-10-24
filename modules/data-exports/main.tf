@@ -257,7 +257,13 @@ resource "aws_bcmdataexports_export" "this" {
     }
   }
 
-  depends_on = [aws_s3_bucket_policy.this]
+  # The export service writes a test object to the bucket when it creates an export.
+  # Waiting for the default encryption as well as the policy makes that write use
+  # the key, so the apply itself shows that the service can encrypt with it.
+  depends_on = [
+    aws_s3_bucket_policy.this,
+    aws_s3_bucket_server_side_encryption_configuration.this,
+  ]
 
   lifecycle {
     prevent_destroy = true
