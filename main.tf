@@ -203,7 +203,7 @@ resource "aws_ce_cost_allocation_tag" "active" {
   status  = "Active"
 }
 
-# Cost data exports. Off by default. The submodule also works alone, for an
+# Cost data exports. On by default. The submodule also works alone, for an
 # organization that already has its own service control policies.
 module "data_exports" {
   source = "./modules/data-exports"

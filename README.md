@@ -39,7 +39,7 @@ The four cost allocation tags `Project`, `Environment`, `ManagedBy` and `Module`
 
 ## Cost data exports
 
-Set `enable_data_exports = true` to create a bucket and three daily Parquet exports. AWS Billing writes them from the management account, so they cover every member account.
+The module creates a bucket and three daily Parquet exports. Set `enable_data_exports = false` only when the organization already has its own exports. AWS Billing writes them from the management account, so they cover every member account.
 
 | Key | Export | Prefix |
 |---|---|---|

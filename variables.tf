@@ -80,9 +80,9 @@ variable "cost_allocation_tag_keys" {
 }
 
 variable "enable_data_exports" {
-  description = "Create the cost data exports (FOCUS 1.2, Cost Optimization Hub recommendations, CUR 2.0 with the IAM principal) and their bucket. See modules/data-exports."
+  description = "Create the cost data exports (FOCUS 1.2, Cost Optimization Hub recommendations, CUR 2.0 with the IAM principal) and their bucket. On by default. Set false only when the organization already has its own exports. See modules/data-exports."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "data_exports_bucket_name" {
