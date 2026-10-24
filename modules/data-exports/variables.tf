@@ -10,6 +10,12 @@ variable "bucket_name" {
   default     = null
 }
 
+variable "reencrypt_deliveries" {
+  description = "Re-encrypt each delivered export file with the module key. Data Exports writes its files with SSE-S3 whatever the bucket default is, so without this the key protects nothing the exports write. An EventBridge rule starts a Systems Manager Automation runbook for each new object under an export prefix, and the runbook calls S3 UpdateObjectEncryption on that object version. Readers then need kms:Decrypt on the key."
+  type        = bool
+  default     = false
+}
+
 variable "exports" {
   description = "Exports to create: focus (FOCUS 1.2), recommendations (Cost Optimization Hub) and cur2 (CUR 2.0 with the IAM principal). Leave a key out to skip that export. Each field overrides a default, and each change replaces the export, so a caller that adopts existing exports passes the values they already have."
   type = map(object({

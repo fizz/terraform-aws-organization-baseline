@@ -62,6 +62,16 @@ module "data_exports" {
 
 To adopt exports that exist already, pass their names and descriptions in `exports`, and add a `moved` block for each resource. A change to the name, the description, the prefix or the granularity replaces an export, and the exports and the bucket have `prevent_destroy`.
 
+### Encrypting the delivered files
+
+Data Exports writes every file with SSE-S3, whatever the bucket default is. AWS says to apply SSE-KMS after delivery. Set `data_exports_reencrypt_deliveries = true` (`reencrypt_deliveries` in the submodule) to do that:
+
+1. The bucket sends its events to EventBridge.
+2. A rule matches each new object under an export prefix and starts a Systems Manager Automation runbook.
+3. The runbook calls S3 `UpdateObjectEncryption` on that object version, with the module key and an S3 Bucket Key.
+
+The update keeps the version ID, the ETag and the last-modified time, and it writes no new version, so the update does not start the rule again. A file is SSE-S3 for the seconds between delivery and the update. Other writers to the bucket keep the bucket default.
+
 ### Reading the exports
 
 `modules/data-exports/queries/cur2.sql` defines DuckDB views over the CUR 2.0 export:
@@ -103,7 +113,9 @@ GovCloud usage is billed in the paired commercial account, and its rows carry th
 
 **Data Exports refuses `SELECT *`.** Each query names every column of its table. A column that AWS adds later appears only after it is added to `modules/data-exports/columns.tf`.
 
-**The export bucket encrypts with a key the module owns.** A reader needs `kms:Decrypt` on `data_exports.kms_key_arn` as well as `s3:GetObject` on the bucket. Without the key permission, S3 returns `AccessDenied` and does not name the key. Objects written before the key existed stay SSE-S3 and need only the S3 permission.
+**The export bucket encrypts with a key the module owns.** A reader needs `kms:Decrypt` on `data_exports.kms_key_arn` as well as `s3:GetObject` on the bucket. Without the key permission, S3 returns `AccessDenied` and does not name the key. Data Exports writes its files with SSE-S3, so they need only the S3 permission unless `data_exports_reencrypt_deliveries` is on.
+
+**EventBridge counts a refused runbook start as a success.** SSM authorizes `ssm:StartAutomationExecution` against the automation definition, the document and the new execution. With one of the three missing from the EventBridge role, the rule reports its invocations with no failures, and no runbook runs. The refusal appears only in CloudTrail. The AWS provider gives an Automation document the `automation-definition` ARN, so the module builds the `document` ARN itself.
 
 **Cost Optimization Hub must be on, and two service-linked roles must exist.** They are `AWSServiceRoleForCostOptimizationHub` and `AWSServiceRoleForBCMDataExports`. The module does not create them, because creating them in the same apply as an export fails on a race (terraform-provider-aws#39855). The first export created in the console creates the second role.
 

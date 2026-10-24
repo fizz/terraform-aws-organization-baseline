@@ -90,3 +90,9 @@ variable "data_exports_bucket_name" {
   type        = string
   default     = null
 }
+
+variable "data_exports_reencrypt_deliveries" {
+  description = "Re-encrypt each delivered export file with the module key, through EventBridge and a Systems Manager Automation runbook. Data Exports writes its files with SSE-S3 whatever the bucket default is. See modules/data-exports."
+  type        = bool
+  default     = false
+}
