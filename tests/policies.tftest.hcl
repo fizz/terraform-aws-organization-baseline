@@ -121,21 +121,21 @@ run "oversized_policy_fails_at_plan" {
   expect_failures = [terraform_data.size_limit]
 }
 
-run "data_exports_are_off_by_default" {
-  command = plan
-
-  assert {
-    condition     = length(module.data_exports) == 0
-    error_message = "The exports are created only when enable_data_exports is true."
-  }
-}
-
-run "data_exports_create_three_exports" {
+run "data_exports_can_be_turned_off" {
   command = plan
 
   variables {
-    enable_data_exports = true
+    enable_data_exports = false
   }
+
+  assert {
+    condition     = length(module.data_exports) == 0
+    error_message = "enable_data_exports = false creates no exports."
+  }
+}
+
+run "data_exports_are_on_by_default" {
+  command = plan
 
   assert {
     condition     = length(module.data_exports[0].s3_uris) == 3
