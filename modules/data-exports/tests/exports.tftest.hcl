@@ -39,6 +39,25 @@ run "cur2_carries_the_iam_principal" {
   }
 }
 
+run "bucket_encrypts_with_the_module_key" {
+  command = plan
+
+  assert {
+    condition     = one(one(aws_s3_bucket_server_side_encryption_configuration.this.rule).apply_server_side_encryption_by_default).sse_algorithm == "aws:kms"
+    error_message = "The bucket encrypts with SSE-KMS."
+  }
+
+  assert {
+    condition     = one(aws_s3_bucket_server_side_encryption_configuration.this.rule).bucket_key_enabled
+    error_message = "The bucket uses an S3 Bucket Key."
+  }
+
+  assert {
+    condition     = aws_kms_key.this.enable_key_rotation
+    error_message = "The key rotates."
+  }
+}
+
 run "recommendations_have_no_granularity" {
   command = plan
 

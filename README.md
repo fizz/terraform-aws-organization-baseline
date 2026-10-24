@@ -103,6 +103,8 @@ GovCloud usage is billed in the paired commercial account, and its rows carry th
 
 **Data Exports refuses `SELECT *`.** Each query names every column of its table. A column that AWS adds later appears only after it is added to `modules/data-exports/columns.tf`.
 
+**The export bucket encrypts with a key the module owns.** A reader needs `kms:Decrypt` on `data_exports.kms_key_arn` as well as `s3:GetObject` on the bucket. Without the key permission, S3 returns `AccessDenied` and does not name the key. Objects written before the key existed stay SSE-S3 and need only the S3 permission.
+
 **Cost Optimization Hub must be on, and two service-linked roles must exist.** They are `AWSServiceRoleForCostOptimizationHub` and `AWSServiceRoleForBCMDataExports`. The module does not create them, because creating them in the same apply as an export fails on a race (terraform-provider-aws#39855). The first export created in the console creates the second role.
 
 ## Notes
