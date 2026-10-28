@@ -78,6 +78,19 @@ run "bedrock_survives_the_region_limit" {
   }
 }
 
+run "uploads_without_an_encryption_header_pass" {
+  command = plan
+
+  assert {
+    condition = alltrue([
+      for s in jsondecode(aws_organizations_policy.scp["s3_protection"].content).Statement :
+      lookup(lookup(s, "Condition", {}), "Null", null) != null
+      if s.Sid == "DenyUnsupportedEncryption"
+    ])
+    error_message = "Without Null = false the encryption deny matches a missing header and blocks every default-encrypted upload."
+  }
+}
+
 run "toggles_remove_their_policies" {
   command = plan
 
