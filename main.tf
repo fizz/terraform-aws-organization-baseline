@@ -68,8 +68,12 @@ locals {
             Effect   = "Deny"
             Action   = "s3:PutObject"
             Resource = "*"
+            # Null = false keeps a request with no header out of the deny. IfExists does
+            # the opposite: on a missing key it counts the condition as true, so it
+            # denied every upload that left encryption to the bucket default.
             Condition = {
-              StringNotEqualsIfExists = { "s3:x-amz-server-side-encryption" = ["AES256", "aws:kms"] }
+              StringNotEquals = { "s3:x-amz-server-side-encryption" = ["AES256", "aws:kms"] }
+              Null            = { "s3:x-amz-server-side-encryption" = "false" }
             }
           },
         ]
